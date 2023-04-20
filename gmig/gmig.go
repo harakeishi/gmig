@@ -33,12 +33,12 @@ type where struct {
 func (w where) write() string {
 	return fmt.Sprintf("%s %s %s", w.key, w.operator, w.value)
 }
-func (t table) getConditionalStatement() string {
-	var conditionalStatement []string
+func (t table) getWhereStatement() string {
+	var WhereStatement []string
 	for _, v := range t.wheres {
-		conditionalStatement = append(conditionalStatement, v.write())
+		WhereStatement = append(WhereStatement, v.write())
 	}
-	return strings.Join(conditionalStatement, ",")
+	return strings.Join(WhereStatement, ",")
 }
 func (t table) checkMask(s string) (string, bool) {
 	for _, v := range t.masks {
@@ -48,11 +48,11 @@ func (t table) checkMask(s string) (string, bool) {
 	}
 	return "", false
 }
-func (t table) createSQL() string {
-	return fmt.Sprintf("SELECT * FROM %s WHERE %s", t.name, t.getConditionalStatement())
+func (t table) createSelectSQL() string {
+	return fmt.Sprintf("SELECT * FROM %s WHERE %s", t.name, t.getWhereStatement())
 }
 func (t table) exec(db *sqlx.DB) {
-	rows, err := db.Queryx(t.createSQL())
+	rows, err := db.Queryx(t.createSelectSQL())
 	if err != nil {
 		log.Fatal(err)
 	}
