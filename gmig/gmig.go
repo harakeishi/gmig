@@ -30,13 +30,13 @@ type where struct {
 	operator string
 }
 
-func (w where) write() string {
+func (w where) build() string {
 	return fmt.Sprintf("%s %s %s", w.key, w.operator, w.value)
 }
 func (t table) getWhereStatement() string {
 	var WhereStatement []string
 	for _, v := range t.wheres {
-		WhereStatement = append(WhereStatement, v.write())
+		WhereStatement = append(WhereStatement, v.build())
 	}
 	return strings.Join(WhereStatement, ",")
 }
