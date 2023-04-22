@@ -14,10 +14,10 @@ type Dataset struct {
 }
 
 type Table struct {
-	Name   string              `yaml:Name`
-	Masks  []Mask              `yaml:Masks`
-	Wheres []where             `yaml:Wheres`
-	Result map[string][]string `yaml:Result`
+	Name   string  `yaml:Name`
+	Masks  []Mask  `yaml:Masks`
+	Wheres []where `yaml:Wheres`
+	Result map[string][]string
 }
 
 type Mask struct {
@@ -29,6 +29,7 @@ type where struct {
 	Key      string `yaml:Key`
 	Value    string `yaml:Value`
 	Operator string `yaml:Operator`
+	DependOn string `yaml:DependOn`
 }
 
 func (w where) build() string {
@@ -61,7 +62,8 @@ func (t *Table) exec(db *sqlx.DB) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	t.Result = make(map[string][]string)
+	Result := make(map[string][]string)
+
 	data := map[string]interface{}{}
 	for rows.Next() {
 		rows.MapScan(data)
@@ -71,14 +73,15 @@ func (t *Table) exec(db *sqlx.DB) {
 			key = append(key, i)
 			if val, ok := t.checkMask(i); ok {
 				value = append(value, val)
-				t.Result[i] = append(t.Result[i], val)
+				Result[i] = append(Result[i], val)
 			} else {
 				value = append(value, fmt.Sprintf("%s", v))
-				t.Result[i] = append(t.Result[i], fmt.Sprintf("%s", v))
+				Result[i] = append(Result[i], fmt.Sprintf("%s", v))
 			}
 		}
 		fmt.Printf("insert INTO %s (%s) Values (%s);\n", t.Name, strings.Join(key, ","), strings.Join(value, ","))
 	}
+	t.Result = Result
 }
 
 func (d Dataset) Exec() {
@@ -86,8 +89,39 @@ func (d Dataset) Exec() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, v := range d.Tables {
+	for i, v := range d.Tables {
+		d.setChainWhere(v.Name)
 		v.exec(db)
-		fmt.Printf("%+v\n", v)
+		d.Tables[i] = v
 	}
+}
+
+func (d *Dataset) setChainWhere(target string) {
+	i := position(d.Tables, target)
+	if i == -1 {
+		return
+	}
+	key := d.Tables[i].haveDependon()
+	if key == -1 {
+		return
+	}
+	j := position(d.Tables, d.Tables[i].Wheres[key].DependOn)
+	d.Tables[i].Wheres[key].Value = strings.Join(d.Tables[j].Result[d.Tables[i].Wheres[key].Key], ",")
+}
+
+func position(target []Table, find string) int {
+	for i, v := range target {
+		if v.Name == find {
+			return i
+		}
+	}
+	return -1
+}
+func (t Table) haveDependon() int {
+	for i, v := range t.Wheres {
+		if v.DependOn != "" {
+			return i
+		}
+	}
+	return -1
 }
