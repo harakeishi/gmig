@@ -56,7 +56,7 @@ func (t Table) createSelectSQL() string {
 	return fmt.Sprintf("SELECT * FROM %s WHERE %s", t.Name, t.getWheretatement())
 }
 
-func (t Table) exec(db *sqlx.DB) {
+func (t *Table) exec(db *sqlx.DB) {
 	rows, err := db.Queryx(t.createSelectSQL())
 	if err != nil {
 		log.Fatal(err)
@@ -77,7 +77,7 @@ func (t Table) exec(db *sqlx.DB) {
 				t.Result[i] = append(t.Result[i], fmt.Sprintf("%s", v))
 			}
 		}
-		fmt.Printf("insert INTO %s (%s) ValueS (%s);\n", t.Name, strings.Join(key, ","), strings.Join(value, ","))
+		fmt.Printf("insert INTO %s (%s) Values (%s);\n", t.Name, strings.Join(key, ","), strings.Join(value, ","))
 	}
 }
 
@@ -88,5 +88,6 @@ func (d Dataset) Exec() {
 	}
 	for _, v := range d.Tables {
 		v.exec(db)
+		fmt.Printf("%+v\n", v)
 	}
 }
