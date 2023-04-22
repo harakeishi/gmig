@@ -31,6 +31,7 @@ import (
 )
 
 var cfgFile string
+var dataset gmig.Dataset
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -40,7 +41,7 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		gmig.Gmig()
+		dataset.Exec()
 	},
 }
 
@@ -88,5 +89,10 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	}
+	// 設定ファイルの内容を構造体にコピーする
+	if err := viper.Unmarshal(&dataset); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
